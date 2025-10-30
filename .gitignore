@@ -1,0 +1,10 @@
+dataset/*
+notebooks/*
+external/*
+outputs/*
+saves/*
+logs/*
+.git/*
+
+**/__pycache__/*
+**/.DS_Store

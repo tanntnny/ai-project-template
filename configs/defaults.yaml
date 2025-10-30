@@ -1,0 +1,11 @@
+defaults:
+    - data: mnist
+    - model: mnist
+    - train: single_gpu_l
+    - pipeline: null
+    - experiment: null
+    - _self_
+
+cmd: "train"
+output_dir: "outputs/${now:%Y-%m-%d_%H-%M-%S}"
+debug: true

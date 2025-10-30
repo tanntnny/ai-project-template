@@ -1,0 +1,3 @@
+module: "mnist"
+root: "data/mnist"
+train_ratio: 0.8
