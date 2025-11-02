@@ -9,13 +9,18 @@ from transformers import (
     Trainer,
     TrainingArguments,
     EvalPrediction,
+    TrainerState,
+    TrainerControl,
 )
 from transformers.trainer_callback import TrainerCallback
+import time
 
-from ..interfaces.protocol import TrainerProtocol, DataProtocol
+from ..core.protocol import TrainerProtocol, DataProtocol
 from ..core.logger import get_logger, Logger
 from ..models.builder import build_model
 from ..data.builder import build_data
+from ..core.metrics import build_metrics
+
 
 # ---------------- Trainer ----------------
 class HFTrainer(TrainerProtocol):
@@ -27,12 +32,14 @@ class HFTrainer(TrainerProtocol):
         self.logger.log_info("HFTrainer/Cfg", str(asdict(self.cfg)) if is_dataclass(self.cfg) else str(self.cfg))
 
         self.model = build_model(self.cfg)
-        self.data = build_data(self.cfg)
+        self.data: Any = build_data(self.cfg)
         self.data_collator = self.data.get_collator()
         self.train_dataset = self.data.get_train_dataset()
         self.eval_dataset = self.data.get_eval_dataset()
-        self.compute_metrics = _build_metrics(self.cfg.train.metrics, self.logger)
-        self.callbacks: Optional[list[TrainerCallback]] = None
+        train_section = getattr(self.cfg, "train", self.cfg)
+        metrics_list = getattr(train_section, "metrics", [])
+        self.compute_metrics = build_metrics(metrics_list, self.logger)
+        self.callbacks: Optional[list[TrainerCallback]] = _build_callbacks(self.cfg)
         self.tokenizer = None
 
         self.args = self._build_training_args()
@@ -91,7 +98,8 @@ class HFTrainer(TrainerProtocol):
         ddp_bucket_cap_mb = g("ddp_bucket_cap_mb", None)
 
         # Logging & evaluation strategies
-        eval_strategy = g("evaluation_strategy", "epoch") # "no" | "steps" | "epoch"
+        eval_strategy = g("eval_strategy", "epoch") # "no" | "steps" | "epoch"
+        eval_steps = g("eval_steps", None)
         save_strategy = g("save_strategy", "epoch")
         log_strategy = g("logging_strategy", "epoch")
         log_steps = g("logging_steps", 50)
@@ -114,6 +122,9 @@ class HFTrainer(TrainerProtocol):
             max_grad_norm=float(g("max_grad_norm", 1.0)),
             warmup_steps=int(g("warmup_steps", 0)),
             lr_scheduler_type=g("lr_scheduler_type", "linear"),
+            
+            dataloader_drop_last=bool(g("dataloader_drop_last", False)),
+            dataloader_pin_memory=bool(g("dataloader_pin_memory", True)),
 
             # Precision / speed
             fp16=fp16,
@@ -122,6 +133,7 @@ class HFTrainer(TrainerProtocol):
 
             # Evaluation / saving / logging
             eval_strategy=eval_strategy,
+            eval_steps=eval_steps,
             save_strategy=save_strategy,
             save_total_limit=g("save_total_limit", 3),
             logging_strategy=log_strategy,
@@ -160,50 +172,30 @@ class HFTrainer(TrainerProtocol):
         if isinstance(obj, dict):
             return obj
         return {k: getattr(obj, k) for k in dir(obj) if not k.startswith("_") and not callable(getattr(obj, k))}
+    
+# ---------------- Callbacks ----------------
+class TimingCallback(TrainerCallback):
+    def __init__(self):
+        self.last_time = time.time()
 
-# ---------------- Metrics ----------------
-def _build_metrics(metrics: List[str], logger: Logger) -> Optional[Any]:
-    metrics_dict = {}
-    for m in metrics:
-        if m in ["accuracy"]:
-            from sklearn.metrics import accuracy_score
-            def compute(p: EvalPrediction) -> Dict[str, float]:
-                preds = p.predictions.argmax(-1)
-                return {"accuracy": accuracy_score(p.label_ids, preds)}
-            metrics_dict.update({"accuracy": compute})
-        elif m in ["f1", "f1_score"]:
-            from sklearn.metrics import f1_score
-            def compute(p: EvalPrediction) -> Dict[str, float]:
-                preds = p.predictions.argmax(-1)
-                return {"f1": f1_score(p.label_ids, preds, average="weighted")}
-            metrics_dict.update({"f1": compute})
-        elif m in ["precision"]:
-            from sklearn.metrics import precision_score
-            def compute(p: EvalPrediction) -> Dict[str, float]:
-                preds = p.predictions.argmax(-1)
-                return {"precision": precision_score(p.label_ids, preds, average="weighted")}
-            metrics_dict.update({"precision": compute})
-        elif m in ["recall"]:
-            from sklearn.metrics import recall_score
-            def compute(p: EvalPrediction) -> Dict[str, float]:
-                preds = p.predictions.argmax(-1)
-                return {"recall": recall_score(p.label_ids, preds, average="weighted")}
-            metrics_dict.update({"recall": compute})
-        elif m in ["mse"]:
-            from sklearn.metrics import mean_squared_error
-            def compute(p: EvalPrediction) -> Dict[str, float]:
-                preds = p.predictions.squeeze()
-                return {"mse": mean_squared_error(p.label_ids, preds)}
-            metrics_dict.update({"mse": compute})
+    def on_step_begin(self, args, state: TrainerState, control: TrainerControl, **kwargs):
+        self.last_time = time.time()
+
+    def on_step_end(self, args, state: TrainerState, control: TrainerControl, **kwargs):
+        dt = time.time() - self.last_time
+        print(f"[TIME] Step {state.global_step} took {dt:.4f} sec")
+
+    def on_epoch_end(self, args, state, control, **kwargs):
+        print(f"[TIME] Epoch {state.epoch} finished at {time.time():.2f}")
+
+    def on_evaluate(self, args, state, control, **kwargs):
+        print(f"[TIME] Evaluation at step {state.global_step} started {time.ctime()}")
+
+def _build_callbacks(cfg) -> Optional[list[TrainerCallback]]:
+    callbacks = []
+    for cb in cfg.train.get("callbacks", []):
+        if cb == "timing":
+            callbacks.append(TimingCallback())
         else:
-            raise ValueError(f"Unknown metric: {m}")
-            
-    def compute_metrics(p: EvalPrediction) -> Dict[str, float]:
-        returning_dict = {}
-        for m, func in metrics_dict.items():
-            try:
-                returning_dict.update(func(p))
-            except Exception as e:
-                logger.log_info(f"HFTrainer/Metrics/{m}", f"Error computing metric: {e}")
-        return returning_dict
-    return compute_metrics
+            raise ValueError(f"Unknown callback: {cb}")
+    return callbacks if callbacks else None
