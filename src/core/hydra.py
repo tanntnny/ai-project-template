@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf, DictConfig
+from .logger import logger
 
 
 class HydraContainer:
@@ -46,4 +47,4 @@ class HydraContainer:
     def print(self):
         if self._cfg is None:
             raise RuntimeError("Config not composed yet.")
-        print(OmegaConf.to_yaml(self._cfg))
+        logger.log_info("HydraContainer/Cfg", OmegaConf.to_yaml(self._cfg))

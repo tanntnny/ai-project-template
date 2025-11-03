@@ -9,6 +9,7 @@ import warnings
 from .train.builder import build_trainer
 from .inference.builder import build_inferencer
 from .pipeline.builder import build_pipeline
+from .core.logger import logger
 
 @hydra.main(version_base=None, config_path="../configs", config_name="defaults")
 def main(cfg: DictConfig) -> None:
@@ -17,6 +18,8 @@ def main(cfg: DictConfig) -> None:
     
     if cfg.get("debug", False):
         warnings.filterwarnings("ignore", category=UserWarning)
+
+    logger.setup(cfg)
     
     if cmd == "train":
         trainer = build_trainer(cfg)

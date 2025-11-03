@@ -1,13 +1,13 @@
 trainer: "hf"
-metrics: ["accuracy"]
+metrics: []
 
 epochs: 10
 batch_size: 1
 eval_batch_size: 1
 
 # Backend/distributed
-backend: "single"            # single | ddp | deepspeed | fsdp
-deepspeed_config: null       # path or dict when backend=deepspeed
+backend: "deepspeed"         # single | ddp | deepspeed | fsdp
+deepspeed_config: configs/deepspeed/zero2_base.json  # path or dict when backend=deepspeed
 fsdp: ""                     # e.g. "full_shard auto_wrap" when backend=fsdp
 ddp_find_unused_parameters: true
 ddp_bucket_cap_mb: null
@@ -24,8 +24,8 @@ adam_beta2: 0.95
 adam_epsilon: 1.0e-7
 
 # Precision / speed
-fp16: false                  # set true to mirror non-flash case in sample
-bf16: false                  # set true when using flash attention on supported GPUs
+fp16: false
+bf16: true
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: false
@@ -40,12 +40,12 @@ remove_unused_columns: true
 # Evaluation / saving / logging
 eval_strategy: "no"
 eval_steps: null
-save_strategy: "no"
-save_total_limit: 10
+save_strategy: "epoch"
+save_total_limit: 5
 save_only_model: true
-logging_strategy: "steps"
+logging_strategy: "epoch"
 logging_steps: 10
-report_to: "none"            # 'none' to match sample; use ['tensorboard'] to enable TB
+report_to: "none"
 disable_tqdm: true
 
 # Misc
