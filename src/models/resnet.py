@@ -19,8 +19,12 @@ class Resnet(nn.Module):
         self.dropout = nn.Dropout(p=0.5)
         self.classifier = nn.Linear(num_classes, num_classes)
 
-    def forward(self, x):
+    def forward(self, x, labels=None):
         x = self.backbone(x)
         x = self.dropout(x)
-        x = self.classifier(x)
-        return x
+        logits = self.classifier(x)
+        loss = nn.functional.cross_entropy(logits, labels) if labels is not None else None
+        return {
+            "logits": logits,
+            "loss": loss
+        }

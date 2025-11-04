@@ -37,7 +37,10 @@ def collate_fn(batch):
     images, labels = zip(*batch)
     images = torch.stack(images, dim=0)
     labels = torch.tensor(labels, dtype=torch.long)
-    return images, labels
+    return {
+        "x": images,
+        "labels": labels
+    }
 
 class CarDataProtocol(DataProtocol):
     def __init__(self, cfg):
