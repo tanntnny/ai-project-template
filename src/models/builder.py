@@ -8,6 +8,6 @@ def build_model(cfg):
         return MNISTClassifier(cfg)
     elif cfg.model.name == "resnet":
         from .resnet import Resnet
-        return Resnet(cfg)s
+        return Resnet(cfg)
     else:
         raise ValueError(f"Model {cfg.model.name} not recognized.")
