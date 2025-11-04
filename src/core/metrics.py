@@ -94,9 +94,13 @@ def build_metrics(metrics: List[str], logger) -> Optional[Any]:
 
 			def _compute_cm(p: Any) -> Dict[str, float]:
 				preds = p.predictions.argmax(-1)
-				tn, fp, fn, tp = confusion_matrix(p.label_ids, preds).ravel()
-				# Maintain original contract: return counts (ints cast to float for consistency)
-				return {"tn": float(tn), "fp": float(fp), "fn": float(fn), "tp": float(tp)}
+				cm = confusion_matrix(p.label_ids, preds)
+				results = {}
+				for i in range(cm.shape[0]):
+					for j in range(cm.shape[1]):
+						results[f"cm_{i}_{j}"] = float(cm[i, j])
+
+				return results
 
 			metrics_dict["cm"] = _compute_cm
 

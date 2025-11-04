@@ -8,6 +8,6 @@ defaults:
 train:
   epochs: 50
   eval_strategy: "epoch"
-  metrics: ["accuracy"]
+  metrics: ["accuracy", "cm"]
 
 notes: "Train Resnet50"
