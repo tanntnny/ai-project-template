@@ -8,11 +8,12 @@ class Resnet(nn.Module):
         super(Resnet, self).__init__()
 
         num_classes = self.cfg.model.num_classes
-        pretrained = self.cfg.model.pretrained
+        pretrained_weights = self.cfg.model.pretrained_weights
 
-        self.backbone = resnet50(
-            weights=ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
-        )
+        state = torch.load(pretrained_weights)
+        self.backbone = resnet50(weights=None)
+        self.backbone.load_state_dict(state)
+        
         num_features = self.backbone.fc.in_features
         self.backbone.fc = nn.Linear(num_features, num_classes)
         self.dropout = nn.Dropout(p=0.5)
