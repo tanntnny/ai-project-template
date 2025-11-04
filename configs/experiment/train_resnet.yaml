@@ -9,5 +9,6 @@ train:
   epochs: 50
   eval_strategy: "epoch"
   metrics: ["accuracy", "cm"]
+  disable_tqdm: true
 
 notes: "Train Resnet50"
