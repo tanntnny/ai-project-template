@@ -1,4 +1,4 @@
 name: "resnet"
 
 num_classes: 6
-pretrained_weights: "models/resnet/resnet50_pretrained.pth"
+pretrained_weights: "models/resnet/resnet50_imagenet.pth"
