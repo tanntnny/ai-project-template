@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=phi4-finetune
+#SBATCH --job-name=train-resnet
 #SBATCH --partition=gpu
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
