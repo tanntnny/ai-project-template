@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - override /data: car
+  - override /model: resnet
+  - override /train: single_gpu_l
+
+train:
+  epochs: 50
+  eval_strategy: "epoch"
+  metrics: ["accuracy"]
+
+notes: "Train Resnet50"

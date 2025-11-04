@@ -1,0 +1,4 @@
+name: "resnet"
+
+num_classes: 6
+pretrained: true

@@ -7,3 +7,6 @@ def build_data(cfg):
     if cfg.data.module == "mnist":
         from .mnist import MNISTData
         return MNISTData(cfg)
+    elif cfg.data.module == "car":
+        from .car import CarDataProtocol
+        return CarDataProtocol(cfg)

@@ -1,0 +1,3 @@
+module: "car"
+train: "dataset/Concatenated/train_fold_0.csv"
+val: "dataset/Concatenated/val_fold_0.csv"
